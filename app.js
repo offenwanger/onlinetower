@@ -19,10 +19,6 @@ let bells = [
     "free",
 ]
 
-router.get('/', function(req, res) {
-  res.sendfile('index.html');
-});
-
 io.on('connection', function(socket){
     console.log("a user connected");
     let bellNumber = 0;
@@ -39,6 +35,15 @@ io.on('connection', function(socket){
 
                 console.log("handing user " + socket.id + " bell "+bellNumber)
             }
+        }
+    })
+
+    socket.on("drop-bell", function() {
+        if(bellNumber != 0) {
+            bells[bellNumber] = "free";
+            console.log("user " + socket.id + " dropped bell "+bellNumber)
+            bellNumber = 0
+            socket.emit("set-number", bellNumber);
         }
     })
 
@@ -62,6 +67,14 @@ io.on('connection', function(socket){
 
 http.listen(3000, function(){
     console.log('listening on *:3000');
+});
+
+
+router.get('/', function(req, res) {
+    res.sendfile('index.html');
+});
+router.get('/favicon.ico', function(req, res) {
+    res.sendfile("public/res/favicon.ico");
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

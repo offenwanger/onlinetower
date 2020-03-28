@@ -36,7 +36,13 @@ function playSound (number) {
 }
 
 function takeBellClicked() {
-    socket.emit('request-bell');
+    if(bellNumber == 0) {
+        $("#takeBell").html("Drop Bell")
+        socket.emit('request-bell');
+    } else {
+        $("#takeBell").html("Take Bell");
+        socket.emit('drop-bell');
+    }
 }
 
 function broadcastRing() {
@@ -49,7 +55,11 @@ function broadcastOrientation() {
 
 socket.on('set-number', function(number){
     bellNumber = number;
-    message("You are now bell " + bellNumber)
+    if(number == 0) {
+        message("You dropped your bell")
+    } else {
+        message("You are now bell " + bellNumber)
+    }
 })
 
 socket.on('ring-broadcast', function(bell){
