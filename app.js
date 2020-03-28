@@ -14,9 +14,14 @@ router.get('/', function(req, res) {
 // Color throw :)
 io.on('connection', function(socket){
   console.log('a user connected');
-  socket.on('ring', function(color){
-    console.log(color);
-    io.emit('ring-broadcast', color)
+  socket.on('ring', function(bellId){
+    console.log(bellId + " rang");
+    io.emit('ring-broadcast', bellId)
+  });
+
+  socket.on('orientation', function(data){
+    console.log(data["bellId"] + " changed orientation to " + data["bellUp"]);
+    io.emit('orientation-broadcast', data)
   });
 });
 
