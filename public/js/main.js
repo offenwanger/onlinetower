@@ -1,7 +1,7 @@
 var sense = sense.init();
 var socket = io();
 
-let bellNumber = Math.random();
+let bellNumber = 0;
 let bellUp = true
 
 let lastPlayed;
@@ -12,14 +12,17 @@ sense.flick(function(data){
         return;
     }
     lastPlayed = Date.now()
-    playSound()
-    message("Bong :)")
-    broadcastRing();
+
+    if(bellNumber > 0) {
+        playSound(bellNumber)
+        message("Bong :)")
+        broadcastRing();
+    }
 });
 
-function playSound () {
+function playSound (number) {
     // Will not work until screen is tapped!
-    var audio = document.getElementById('play');
+    var audio = document.getElementById('bell'+number);
     
     if (audio.paused) {
         audio.play()
@@ -32,27 +35,36 @@ function playSound () {
     }
 }
 
+function takeBellClicked() {
+    socket.emit('request-bell');
+}
+
 function broadcastRing() {
-    socket.emit('ring', bellNumber)
+    socket.emit('ring', bellNumber);
 }
 
 function broadcastOrientation() {
-    socket.emit('orientation', {"bellId":bellNumber, "bellUp":bellUp})   
+    socket.emit('orientation', bellUp)   
 }
+
+socket.on('set-number', function(number){
+    bellNumber = number;
+    message("You are now bell " + bellNumber)
+})
 
 socket.on('ring-broadcast', function(bell){
     if(bell != bellNumber) {
-        playSound()
+        playSound(bell)
     }
 })
 
 
 socket.on('orientation-broadcast', function(data){
-    message("Bell id:" + data["bellId"] + " is " + (data["bellUp"] ? "up" : "down"))
+    message("Bell " + data["number"] + " is " + (data["orientation"] ? "up" : "down"))
 })
 
 function message(str) {
-    $("#messages").prepend( "<p>"+str+"</p>" );
+    $("#messages").prepend( "<p>" +str+"</p>" );
 }
 
 function isDown(beta) {
@@ -69,18 +81,19 @@ function isDown(beta) {
 }
 
 function handleOrientation(event) {
-    if(isDown(event.beta)){
-        if(bellUp) {
-            bellUp = false;
-            broadcastOrientation();
-        }
-    } else {
-        if(!bellUp){
-            bellUp = true;
-            broadcastOrientation();
+    if(bellNumber > 0) {
+        if(isDown(event.beta)){
+            if(bellUp) {
+                bellUp = false;
+                broadcastOrientation();
+            }
+        } else {
+            if(!bellUp){
+                bellUp = true;
+                broadcastOrientation();
+            }
         }
     }
-    // Do stuff with the new orientation data
 }
 
 window.addEventListener("deviceorientation", handleOrientation, true);

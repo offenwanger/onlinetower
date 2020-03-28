@@ -7,26 +7,61 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+let bells = [
+    "bell 0 not a thing",
+    "free",
+    "free",
+    "free",
+    "free",
+    "free",
+    "free",
+    "free",
+    "free",
+]
+
 router.get('/', function(req, res) {
   res.sendfile('index.html');
 });
 
-// Color throw :)
 io.on('connection', function(socket){
-  console.log('a user connected');
-  socket.on('ring', function(bellId){
-    console.log(bellId + " rang");
-    io.emit('ring-broadcast', bellId)
-  });
+    console.log("a user connected");
+    let bellNumber = 0;
 
-  socket.on('orientation', function(data){
-    console.log(data["bellId"] + " changed orientation to " + data["bellUp"]);
-    io.emit('orientation-broadcast', data)
-  });
+    socket.on("request-bell", function() {
+        if(bellNumber == 0) {
+            bellNumber = bells.indexOf("free")
+            if(bellNumber == -1) {
+                bellNumber = 0
+                console.log("no free bells, cannot pick one up")
+            } else {
+                bells[bellNumber] = socket
+                socket.emit("set-number", bellNumber);
+
+                console.log("handing user " + socket.id + " bell "+bellNumber)
+            }
+        }
+    })
+
+    socket.on('ring', function(){
+        console.log("bell " + bellNumber + " rang");
+        io.emit('ring-broadcast', bellNumber)
+    });
+
+    socket.on('orientation', function(data){
+        console.log("bell " + bellNumber + " changed orientation to " + data);
+        io.emit('orientation-broadcast', {"number":bellNumber, "orientation":data})
+    });
+
+    socket.on('disconnect', function() {
+        if(bellNumber != 0) {
+            console.log("bell " + bellNumber + " disconnected!");
+            bells[bellNumber] = "free"
+        }
+    });
 });
 
 http.listen(3000, function(){
-  console.log('listening on *:3000');
+    console.log('listening on *:3000');
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
